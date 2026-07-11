@@ -1,0 +1,15 @@
+{
+  "$comment": "Wires SuplAgentics' own MCP server into Pi via pi-mcp-adapter. Lazy: connects on first tool call. directTools promotes the read-only engine tools to first-class so PI-Fixer can search/index the target without reimplementing RAG. The improvement-suggestion tools are intentionally NOT promoted — we replace that subsystem, not depend on it.",
+  "mcpServers": {
+    "suplagentics": {
+      "command": "node",
+      "args": ["D:/SuplAgentics/MCP/src/index.js"],
+      "lifecycle": "lazy",
+      "directTools": [
+        "suplagentics_rag_status",
+        "suplagentics_search_code",
+        "suplagentics_index_workspace"
+      ]
+    }
+  }
+}

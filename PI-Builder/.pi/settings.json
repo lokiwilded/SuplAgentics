@@ -1,0 +1,16 @@
+{
+  "$comment": "PI-Builder project-local Pi config. Isolated from global ~/.pi so the second layer stays outside the system it fixes. Packages are materialized by `pi install` at build step 3; model may fall back to glm-5.1 if the provider doesn't expose glm-5.2 (check with /model).",
+  "defaultProvider": "ollama-cloud",
+  "defaultModel": "glm-5.2",
+  "defaultThinkingLevel": "medium",
+  "theme": "dark",
+  "packages": [
+    "npm:pi-hermes-memory",
+    "npm:context-mode",
+    "npm:@tintinweb/pi-subagents",
+    "npm:bigpowers",
+    "npm:pi-soly",
+    "npm:pi-lens",
+    "npm:cc-safety-net"
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "name": "suplagentics-mcp-server",
+  "version": "1.0.2",
+  "description": "Standalone MCP server exposing SuplAgentics's real capabilities (Import History, Improvement suggestions, and more over time) to any MCP-capable client — opencode, Claude Code, Claude Desktop — not just one dashboard.",
+  "type": "module",
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lokiwilded/suplagentics-mcp-server.git"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "opencode",
+    "ai",
+    "agents",
+    "memory"
+  ],
+  "main": "src/index.js",
+  "bin": {
+    "suplagentics-mcp-server": "src/index.js"
+  },
+  "files": [
+    "src/"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "validate": "node src/tools/validate-agents.js",
+    "test": "node --test test/rag-tools.test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "better-sqlite3": "^12.10.0",
+    "zod": "^3.23.0"
+  }
+}

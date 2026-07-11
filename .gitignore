@@ -1,0 +1,80 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+build/
+**/build/
+release/
+*.tgz
+*.vsix
+
+# Bun cache
+**/.bun/
+*.bun-build
+
+# Logs
+*.log
+logs/
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Agent memory / runtime state
+.graymatter/
+.opencode/plans/*
+.hive
+data/
+workspaces/
+*.pid
+.worktrees/
+test-results/
+
+# OpenChamber / UI specific
+src/main/resources/webview/
+packages/intellij/
+docs/personal/*
+SECURITY_HARDENING_IMPLEMENTATION_PLAN.md
+
+# PI-Builder runtime — mined session data, never publish (match at any depth)
+**/.pi/corpus/
+# Secrets / runtime state that must never be published
+**/auth.json
+*.pem
+*.key
+.opencode-mem/
+
+# Claude
+.claude/settings.local.json
+
+# Misc
+.tmp/
+/npm
+/tsc
+/openchamber@*
+local-dev*
+changelog-*.png
+scripts/changelog-card/.fonts/

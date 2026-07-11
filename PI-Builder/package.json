@@ -1,0 +1,17 @@
+{
+  "name": "pi-builder",
+  "version": "0.1.0",
+  "description": "Second-layer agent toolkit for working on SuplAgentics from the outside. CLI entrypoint: npx pi-fixer",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "fixer": "node scripts/fixer.js",
+    "status": "node tools/opencode-status.js",
+    "scan": "node tools/audit-scanner.js",
+    "sync": "node tools/sync.js",
+    "refresh": "node tools/refresh.js",
+    "diff-live": "node tools/diff-live.js",
+    "test": "echo 'no tests yet' && exit 0"
+  },
+  "dependencies": {}
+}

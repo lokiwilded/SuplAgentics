@@ -1,0 +1,58 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ollama-cloud": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama Cloud",
+      "options": {
+        "baseURL": "https://ollama.com/v1",
+        "apiKey": "{env:OLLAMA_API_KEY}",
+        "headerTimeout": 60000,
+        "chunkTimeout": 180000
+      },
+      "models": {
+        "glm-5.2": {
+          "limit": { "context": 976000, "output": 131072 }
+        },
+        "deepseek-v4-flash": {
+          "limit": { "context": 1048576, "output": 1048576 }
+        },
+        "deepseek-v4-pro": {
+          "limit": { "context": 1048576, "output": 1048576 }
+        },
+        "devstral-small-2:24b": {
+          "limit": { "context": 262144, "output": 262144 }
+        },
+        "minimax-m2.7": {
+          "limit": { "context": 196608, "output": 196608 }
+        },
+        "gemma4:31b": {
+          "limit": { "context": 262144, "output": 262144 }
+        },
+        "gpt-oss:20b": {
+          "limit": { "context": 131072, "output": 32768 }
+        }
+      }
+    }
+  },
+  "model": "ollama-cloud/glm-5.2",
+  "small_model": "ollama-cloud/deepseek-v4-flash",
+  "default_agent": "commander",
+  "agent": {
+    "build": { "mode": "subagent" },
+    "plan": { "mode": "subagent" }
+  },
+  "plugin": [
+    "@ramtinj95/opencode-tokenscope",
+    "opencode-synced",
+    "opencode-queue",
+    "@tarquinen/opencode-dcp",
+    "opencode-mem",
+    "@atonev/opencode-short-term-memory",
+    "cc-safety-net",
+    "envsitter-guard",
+    ["opencode-log-sanitizer", { "maxStringLength": 4000 }],
+    "opencode-skill-creator",
+    "./plugin/suplagentics-compact.ts"
+  ]
+}

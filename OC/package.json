@@ -1,0 +1,16 @@
+{
+  "name": "suplagentics-opencode",
+  "version": "1.0.0",
+  "description": "SuplAgentics opencode scaffolding — agents, subagents, skills, plugins, and base config, installed into ~/.config/opencode by the dashboard's first-run setup.",
+  "private": false,
+  "license": "MIT",
+  "files": [
+    "agents/",
+    "subagents/",
+    "skills/",
+    "plugins/",
+    "opencode.json",
+    "suplagentics-settings.json",
+    "README.md"
+  ]
+}

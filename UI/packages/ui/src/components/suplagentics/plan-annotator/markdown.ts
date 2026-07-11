@@ -1,0 +1,235 @@
+// Ported directly from ndom91/open-plan-annotator (MIT licensed) ui/utils/markdown.ts —
+// pure text-processing logic, no styling/theme dependency, so no adaptation needed. A
+// small custom block-level markdown parser that tracks character offsets so annotations
+// can be anchored precisely within the source text.
+
+export type BlockType = 'heading' | 'paragraph' | 'code' | 'list' | 'blockquote' | 'hr' | 'table'
+export type ListMarker = 'ordered' | 'unordered'
+
+export interface ListItem {
+  text: string
+  start: number
+  end: number
+  marker: ListMarker
+  order?: number
+  children: ListItem[]
+}
+
+export interface TableCell {
+  text: string
+  align?: 'left' | 'center' | 'right'
+  start: number
+  end: number
+}
+
+export interface Block {
+  index: number
+  type: BlockType
+  raw: string
+  content: string
+  level?: number
+  lang?: string
+  listItems?: ListItem[]
+  headerRow?: TableCell[]
+  bodyRows?: TableCell[][]
+}
+
+interface ListLineMatch {
+  indent: number
+  marker: ListMarker
+  order?: number
+  text: string
+  textStart: number
+}
+
+function isTableSeparator(line: string): boolean {
+  return /^\s*\|[\s:]*-{2,}[\s:|-]*\|?\s*$/.test(line)
+}
+
+function isTableStart(lines: string[], i: number): boolean {
+  if (!lines[i]?.trimStart().startsWith('|')) return false
+  const next = lines[i + 1]
+  return next !== undefined && isTableSeparator(next)
+}
+
+function matchListLine(line: string): ListLineMatch | null {
+  const match = line.match(/^(\s*)([-*+]|\d+\.)\s+(.*)$/)
+  if (!match) return null
+  return {
+    indent: match[1].length,
+    marker: /^\d+\.$/.test(match[2]) ? 'ordered' : 'unordered',
+    order: /^\d+\.$/.test(match[2]) ? Number.parseInt(match[2], 10) : undefined,
+    text: match[3],
+    textStart: match[1].length + match[2].length + 1,
+  }
+}
+
+function parseListItems(listLines: string[]): ListItem[] {
+  const root: ListItem[] = []
+  const stack: Array<{ indent: number; children: ListItem[] }> = [{ indent: -1, children: root }]
+  let lastItem: ListItem | null = null
+  let offset = 0
+
+  for (const line of listLines) {
+    const match = matchListLine(line)
+    if (match) {
+      while (stack.length > 1 && match.indent <= stack[stack.length - 1].indent) stack.pop()
+      const item: ListItem = {
+        text: match.text,
+        start: offset + match.textStart,
+        end: offset + line.length,
+        marker: match.marker,
+        order: match.order,
+        children: [],
+      }
+      stack[stack.length - 1].children.push(item)
+      stack.push({ indent: match.indent, children: item.children })
+      lastItem = item
+    } else if (lastItem) {
+      const continuation = line.trim()
+      if (continuation !== '') {
+        lastItem.text += `\n${continuation}`
+        lastItem.end = offset + line.length
+      }
+    }
+    offset += line.length + 1
+  }
+  return root
+}
+
+export function parseMarkdownToBlocks(markdown: string): Block[] {
+  const blocks: Block[] = []
+  let index = 0
+  const lines = markdown.split('\n')
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+
+    if (line.trim() === '') { i++; continue }
+
+    const codeMatch = line.match(/^( {0,3})```([\w.+#-]*)\s*$/)
+    if (codeMatch) {
+      const fenceIndent = codeMatch[1]
+      const lang = codeMatch[2]
+      const codeLines: string[] = []
+      i++
+      while (i < lines.length && !lines[i].match(new RegExp(`^${fenceIndent}\`\`\`\\s*$`))) {
+        codeLines.push(lines[i])
+        i++
+      }
+      i++
+      const rawContent = codeLines.join('\n')
+      const stripPrefix = fenceIndent.length > 0 ? new RegExp(`^ {1,${fenceIndent.length}}`) : null
+      const content = stripPrefix ? codeLines.map(l => l.replace(stripPrefix, '')).join('\n') : rawContent
+      blocks.push({ index: index++, type: 'code', raw: `${fenceIndent}\`\`\`${lang}\n${rawContent}\n${fenceIndent}\`\`\``, content, lang })
+      continue
+    }
+
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/)
+    if (headingMatch) {
+      blocks.push({ index: index++, type: 'heading', raw: line, content: headingMatch[2], level: headingMatch[1].length })
+      i++
+      continue
+    }
+
+    if (/^(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+      blocks.push({ index: index++, type: 'hr', raw: line, content: '' })
+      i++
+      continue
+    }
+
+    if (line.startsWith('>')) {
+      const quoteLines: string[] = []
+      while (i < lines.length && lines[i].startsWith('>')) {
+        quoteLines.push(lines[i].replace(/^>\s?/, ''))
+        i++
+      }
+      const raw = quoteLines.map(l => `> ${l}`).join('\n')
+      const content = quoteLines.join('\n')
+      blocks.push({ index: index++, type: 'blockquote', raw, content })
+      continue
+    }
+
+    if (matchListLine(line)) {
+      const listLines: string[] = []
+      while (i < lines.length) {
+        const l = lines[i]
+        if (matchListLine(l)) { listLines.push(l); i++ }
+        else if (/^\s+/.test(l) && listLines.length > 0 && !/^ {0,3}```/.test(l) && !isTableStart(lines, i)) { listLines.push(l); i++ }
+        else if (l.trim() === '') {
+          if (i + 1 < lines.length && matchListLine(lines[i + 1])) i++
+          else break
+        } else break
+      }
+      const raw = listLines.join('\n')
+      blocks.push({ index: index++, type: 'list', raw, content: raw, listItems: parseListItems(listLines) })
+      continue
+    }
+
+    if (line.trimStart().startsWith('|')) {
+      const rawTableLines: string[] = []
+      while (i < lines.length && lines[i].trimStart().startsWith('|')) { rawTableLines.push(lines[i]); i++ }
+      const tableLines = rawTableLines.map(l => l.replace(/^\s+/, ''))
+      if (tableLines.length >= 2 && isTableSeparator(tableLines[1])) {
+        const parseCells = (row: string): string[] => row.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim())
+        const parseAlignments = (sep: string): Array<'left' | 'center' | 'right' | undefined> =>
+          parseCells(sep).map(c => {
+            const left = c.startsWith(':')
+            const right = c.endsWith(':')
+            if (left && right) return 'center'
+            if (right) return 'right'
+            return left ? 'left' : undefined
+          })
+        const alignments = parseAlignments(tableLines[1])
+        const rowOffsets: number[] = []
+        let offset = 0
+        for (let ri = 0; ri < tableLines.length; ri++) { rowOffsets.push(offset); offset += tableLines[ri].length + 1 }
+        const parseCellsWithOffsets = (row: string, rowOffset: number): Array<{ text: string; start: number; end: number }> => {
+          const results: Array<{ text: string; start: number; end: number }> = []
+          let cursor = row.indexOf('|')
+          if (cursor === -1) return results
+          cursor++
+          while (cursor < row.length) {
+            const nextPipe = row.indexOf('|', cursor)
+            if (nextPipe === -1) break
+            const rawCell = row.substring(cursor, nextPipe)
+            const trimmed = rawCell.trim()
+            if (trimmed.length > 0) {
+              const trimStart = rawCell.indexOf(trimmed)
+              results.push({ text: trimmed, start: rowOffset + cursor + trimStart, end: rowOffset + cursor + trimStart + trimmed.length })
+            } else {
+              results.push({ text: '', start: rowOffset + cursor, end: rowOffset + cursor })
+            }
+            cursor = nextPipe + 1
+          }
+          return results
+        }
+        const headerCellData = parseCellsWithOffsets(tableLines[0], rowOffsets[0])
+        const headerRow: TableCell[] = headerCellData.map((cell, ci) => ({ text: cell.text, align: alignments[ci], start: cell.start, end: cell.end }))
+        const bodyRows: TableCell[][] = tableLines.slice(2).map((row, ri) => {
+          const cellData = parseCellsWithOffsets(row, rowOffsets[ri + 2])
+          return cellData.map((cell, ci) => ({ text: cell.text, align: alignments[ci], start: cell.start, end: cell.end }))
+        })
+        const raw = tableLines.join('\n')
+        blocks.push({ index: index++, type: 'table', raw, content: raw, headerRow, bodyRows })
+        continue
+      }
+      i -= rawTableLines.length
+    }
+
+    const paraLines: string[] = []
+    while (
+      i < lines.length && lines[i].trim() !== '' &&
+      !lines[i].match(/^#{1,6}\s/) && !/^ {0,3}```/.test(lines[i]) &&
+      !lines[i].startsWith('>') && !matchListLine(lines[i]) &&
+      !/^(-{3,}|\*{3,}|_{3,})\s*$/.test(lines[i])
+    ) { paraLines.push(lines[i]); i++ }
+    if (paraLines.length > 0) {
+      const content = paraLines.join(' ')
+      blocks.push({ index: index++, type: 'paragraph', raw: paraLines.join('\n'), content })
+    }
+  }
+
+  return blocks
+}
